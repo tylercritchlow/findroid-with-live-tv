@@ -10,14 +10,25 @@ enum class FindroidSegmentType {
 @Serializable
 data class FindroidSegment(
     var type: FindroidSegmentType = FindroidSegmentType.UNKNOWN,
-    @SerialName("IntroStart")
     val startTime: Double,
-    @SerialName("IntroEnd")
     val endTime: Double,
-    @SerialName("ShowSkipPromptAt")
     val showAt: Double,
-    @SerialName("HideSkipPromptAt")
     val hideAt: Double,
+)
+
+@Serializable
+data class TimestampsResponse(
+    @SerialName("Introduction")
+    val introduction: SegmentData? = null,
+    @SerialName("Credits")
+    val credits: SegmentData? = null,
+)
+
+@Serializable
+data class SegmentData(
+    val Valid: Boolean,
+    val Start: Double,
+    val End: Double,
 )
 
 fun FindroidSegmentDto.toFindroidSegment(): FindroidSegment {

@@ -17,6 +17,7 @@ import dev.jdtech.jellyfin.models.FindroidSegmentType
 import dev.jdtech.jellyfin.models.FindroidShow
 import dev.jdtech.jellyfin.models.FindroidSource
 import dev.jdtech.jellyfin.models.SortBy
+import dev.jdtech.jellyfin.models.TimestampsResponse
 import dev.jdtech.jellyfin.models.toFindroidCollection
 import dev.jdtech.jellyfin.models.toFindroidEpisode
 import dev.jdtech.jellyfin.models.toFindroidItem
@@ -346,22 +347,42 @@ class JellyfinRepositoryImpl(
 
             // https://github.com/jumoog/intro-skipper/blob/master/docs/api.md
             try {
-                val segmentsMap = jellyfinApi.api.get<Map<String, FindroidSegment>>(
-                    pathTemplate = "/Episode/{itemId}/IntroSkipperSegments",
+                val response = jellyfinApi.api.get<TimestampsResponse>(
+                    pathTemplate = "/Episode/{itemId}/Timestamps",
                     pathParameters = mapOf("itemId" to itemId),
                 ).content
 
-                for ((type, segment) in segmentsMap) {
-                    segment.type = when (type) {
-                        "Introduction" -> FindroidSegmentType.INTRO
-                        "Credits" -> FindroidSegmentType.CREDITS
-                        else -> FindroidSegmentType.UNKNOWN
-                    }
+                val segments = mutableListOf<FindroidSegment>()
+
+                // Handle Introduction segment
+                if (response.introduction?.Valid == true) {
+                    segments.add(
+                        FindroidSegment(
+                            type = FindroidSegmentType.INTRO,
+                            startTime = response.introduction.Start,
+                            endTime = response.introduction.End,
+                            showAt = response.introduction.Start,
+                            hideAt = response.introduction.End,
+                        )
+                    )
                 }
 
-                Timber.tag("SegmentInfo").d("segments: %s", segmentsMap.values)
+                // Handle Credits segment
+                if (response.credits?.Valid == true) {
+                    segments.add(
+                        FindroidSegment(
+                            type = FindroidSegmentType.CREDITS,
+                            startTime = response.credits.Start,
+                            endTime = response.credits.End,
+                            showAt = response.credits.Start,
+                            hideAt = response.credits.End,
+                        )
+                    )
+                }
 
-                return@withContext segmentsMap.values.toList()
+                Timber.tag("SegmentInfo").d("segments: %s", segments)
+
+                return@withContext segments
             } catch (e: Exception) {
                 Timber.e(e)
                 return@withContext emptyList()
